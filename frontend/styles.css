@@ -1,0 +1,403 @@
+/* Dark Theme Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #e0e0e0;
+    background: #0d0d0d;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+header {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2.5em;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    color: #999;
+}
+
+/* Sections */
+section {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #ccc;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    font-size: 1em;
+    font-family: inherit;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    transition: border-color 0.3s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-group textarea {
+    resize: vertical;
+    font-family: 'Courier New', monospace;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #28a745;
+    color: white;
+    width: 100%;
+    padding: 15px;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Status Card */
+.status-card {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 25px;
+    border: 1px solid #333;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: #0d0d0d;
+    border-radius: 6px;
+    border: 1px solid #222;
+}
+
+.status-item .label {
+    font-weight: 600;
+    color: #999;
+}
+
+.status-item .value {
+    color: #fff;
+    font-weight: 500;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.pending {
+    background: #ffc107;
+    color: #000;
+}
+
+.status-badge.running {
+    background: #28a745;
+    color: white;
+}
+
+.status-badge.paused {
+    background: #ffc107;
+    color: #000;
+}
+
+.status-badge.completed {
+    background: #17a2b8;
+    color: white;
+}
+
+.status-badge.killed {
+    background: #dc3545;
+    color: white;
+}
+
+.status-badge.error {
+    background: #dc3545;
+    color: white;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    background: #0d0d0d;
+    border-radius: 10px;
+    height: 30px;
+    margin: 20px 0;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+/* Control Buttons */
+.control-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+/* Results Table */
+.table-container {
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    border-radius: 6px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1a1a1a;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    background: #0d0d0d;
+    z-index: 10;
+}
+
+thead th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #fff;
+    border-bottom: 2px solid #333;
+    background: #0d0d0d;
+}
+
+tbody tr {
+    border-bottom: 1px solid #222;
+    transition: background 0.2s;
+}
+
+tbody tr:nth-child(even) {
+    background: #151515;
+}
+
+tbody tr:hover {
+    background: #1f1f1f;
+}
+
+tbody td {
+    padding: 10px 12px;
+    color: #e0e0e0;
+}
+
+tbody td a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+tbody td a:hover {
+    text-decoration: underline;
+}
+
+.status-badge.new {
+    background: #28a745;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.status-badge.duplicate {
+    background: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* Error Section */
+.error-card {
+    background: #2d1b1b;
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.error-icon {
+    font-size: 2em;
+}
+
+.error-card p {
+    color: #ff6b6b;
+    font-weight: 500;
+}
+
+/* Results Count */
+#resultsCount {
+    color: #999;
+    font-size: 0.7em;
+    font-weight: normal;
+}
+
+/* Auto-scroll indicator */
+.auto-scroll-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #667eea;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    display: none;
+}
+
+.auto-scroll-indicator.active {
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 2em;
+    }
+
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .control-buttons {
+        flex-direction: column;
+    }
+
+    .control-buttons .btn {
+        width: 100%;
+    }
+
+    .table-container {
+        font-size: 0.9em;
+    }
+}

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Scraper Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 Business Scraper Dashboard</h1>
+            <p class="subtitle">YellowPages High-Volume Scraping</p>
+        </header>
+
+        <main>
+            <!-- Job Creation Form -->
+            <section class="form-section">
+                <h2>Create Scraping Job</h2>
+                
+                <form id="scrapeForm">
+                    <div class="form-group">
+                        <label for="keyword">Search Keyword:</label>
+                        <input 
+                            type="text" 
+                            id="keyword" 
+                            name="keyword" 
+                            placeholder="e.g., roofing, computer shop, restaurant"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cities">Cities (one per line):</label>
+                        <textarea 
+                            id="cities" 
+                            name="cities" 
+                            rows="6"
+                            placeholder="Toledo, OH&#10;St Petersburg, FL&#10;Laredo, TX&#10;..."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary">
+                        ▶ Start Scraping
+                    </button>
+                </form>
+            </section>
+
+            <!-- Live Status Panel -->
+            <section class="status-section" id="statusSection" style="display: none;">
+                <h2>Job Status</h2>
+                <div class="status-card">
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="label">Job ID:</span>
+                            <span class="value" id="jobId">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Keyword:</span>
+                            <span class="value" id="jobKeyword">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Status:</span>
+                            <span class="value status-badge" id="jobStatus">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Current City:</span>
+                            <span class="value" id="currentCity">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Current Page:</span>
+                            <span class="value" id="currentPage">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Businesses Found:</span>
+                            <span class="value" id="businessCount">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Progress:</span>
+                            <span class="value" id="jobProgress">0%</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Elapsed Time:</span>
+                            <span class="value" id="elapsedTime">00:00:00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button id="pauseBtn" class="btn btn-warning" style="display: none;">
+                            ⏸ Pause
+                        </button>
+                        <button id="resumeBtn" class="btn btn-success" style="display: none;">
+                            ▶ Resume
+                        </button>
+                        <button id="killBtn" class="btn btn-danger" style="display: none;">
+                            ⏹ Kill Job
+                        </button>
+                        <button id="downloadBtn" class="btn btn-secondary" style="display: none;">
+                            📥 Download CSV
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Results Table -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>Live Results <span id="resultsCount">(0 businesses)</span></h2>
+                <div class="table-container">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Business Name</th>
+                                <th>Website</th>
+                                <th>City</th>
+                                <th>State</th>
+                                <th>Page #</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section" id="errorSection" style="display: none;">
+                <div class="error-card">
+                    <span class="error-icon">⚠</span>
+                    <p id="errorMessage"></p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
