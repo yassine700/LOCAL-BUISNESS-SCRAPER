@@ -19,9 +19,15 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "30"))
 RETRY_DELAY = float(os.getenv("RETRY_DELAY", "2.0"))
 # MIN_DELAY, MAX_DELAY, MAX_RETRIES, MAX_PAGES are set based on SCRAPER_MODE above
 
-# ScrapingBee configuration
-SCRAPINGBEE_API_KEY = os.getenv("SCRAPINGBEE_API_KEY", "")
-USE_SCRAPINGBEE = bool(SCRAPINGBEE_API_KEY)
+# Proxy API configuration (OPTIONAL - supports any proxy service)
+PROXY_API_KEY = os.getenv("PROXY_API_KEY", "")
+
+def USE_PROXY() -> bool:
+    """
+    Check if proxy API key is configured.
+    FIX Bug 1: Evaluate at runtime instead of module import time to support runtime-set keys.
+    """
+    return bool(os.getenv("PROXY_API_KEY", ""))
 
 # Scraper mode: "safe" or "high_volume"
 SCRAPER_MODE = os.getenv("SCRAPER_MODE", "high_volume").lower()

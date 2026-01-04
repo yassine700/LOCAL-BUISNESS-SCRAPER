@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import uuid
 import csv
 import os
@@ -59,6 +59,7 @@ class ScrapeRequest(BaseModel):
     keyword: str
     cities: List[str]
     sources: List[str]
+    proxy_api_key: Optional[str] = None
 
 
 @app.get("/")
@@ -109,12 +110,13 @@ async def create_scrape_job(request: ScrapeRequest):
     # Generate job ID
     job_id = str(uuid.uuid4())
     
-    # Create job task
+    # Create job task with optional proxy API key
     create_scraping_job_task.delay(
         job_id=job_id,
         keyword=request.keyword,
         cities=request.cities,
-        sources=request.sources
+        sources=request.sources,
+        proxy_api_key=request.proxy_api_key
     )
     
     logger.info(f"Created scraping job {job_id} for keyword: {request.keyword}")
@@ -135,6 +137,61 @@ async def get_job_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     
     return status
+
+
+@app.get("/api/businesses/{job_id}")
+async def get_businesses_json(job_id: str):
+    """Get businesses for a job as JSON."""
+    # Check if job exists
+    status = db.get_job_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Get businesses
+    businesses = db.get_businesses(job_id)
+    
+    # Transform to match frontend format
+    result = []
+    for biz in businesses:
+        result.append({
+            "name": biz["business_name"],
+            "website": biz["website"] or "",
+            "city": biz["city"],
+            "source": biz["source"],
+            "status": "new",
+            "duplicate": False
+        })
+    
+    return {"businesses": result, "count": len(result)}
+
+
+@app.get("/api/jobs/{job_id}/events")
+async def get_job_events(job_id: str, since: int = 0):
+    """
+    PHASE 2: Event replay endpoint.
+    Get events for a job since a given sequence number.
+    
+    Args:
+        job_id: Job ID
+        since: Sequence number to start from (default: 0 = all events)
+    
+    Returns:
+        List of events with sequence numbers
+    """
+    # Check if job exists
+    status = db.get_job_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Get events
+    events = db.get_events(job_id, since_sequence=since)
+    
+    return {
+        "job_id": job_id,
+        "since": since,
+        "events": events,
+        "count": len(events)
+    }
 
 
 @app.get("/api/download/{job_id}")
@@ -194,25 +251,33 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
             }, websocket)
         
         # Subscribe to Redis pub/sub for real-time events
+        # FIX: Subscribe to both events and metrics channels to receive all backend signals
         import redis
         from backend.config import REDIS_URL
         redis_client = redis.from_url(REDIS_URL)
         pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
         pubsub.subscribe(f"job:{job_id}:events")
+        pubsub.subscribe(f"job:{job_id}:metrics")  # Subscribe to metrics channel for extraction_stats
         
         # Task to listen for Redis messages and forward to WebSocket
         async def redis_listener():
             while True:
                 try:
-                    message = pubsub.get_message(timeout=1.0)
+                    # FIX: pubsub.get_message() is blocking - must run in thread pool to avoid blocking event loop
+                    message = await asyncio.to_thread(pubsub.get_message, timeout=1.0)
                     if message and message['type'] == 'message':
                         try:
                             import json
                             event_data = json.loads(message['data'].decode('utf-8'))
+                            # Log business events for debugging
+                            if event_data.get('type') == 'business':
+                                logger.info(f"[PIPELINE DEBUG] Forwarding business event to WebSocket: {event_data.get('data', {}).get('name', 'unknown')}")
                             await websocket.send_json(event_data)
+                            logger.debug(f"[PIPELINE DEBUG] WebSocket sent event type={event_data.get('type')}")
                         except Exception as e:
-                            logger.debug(f"Error forwarding Redis message: {e}")
-                except Exception:
+                            logger.error(f"Error forwarding Redis message: {e}", exc_info=True)
+                except Exception as e:
+                    logger.debug(f"Redis listener error: {e}")
                     break
         
         # Task to periodically send status updates
@@ -264,37 +329,100 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
 # Job control endpoints
 @app.post("/api/job/{job_id}/pause")
 async def pause_job(job_id: str):
-    """Pause a running scraping job."""
+    """Pause a running scraping job. PHASE 2: Now cancels active Celery tasks."""
     success = db.pause_job(job_id)
     if not success:
         raise HTTPException(status_code=400, detail="Job not found or not in running state")
+    
+    # PHASE 2: Cancel active Celery tasks
+    from backend.celery_app import celery_app
+    active_tasks = db.get_all_active_task_ids(job_id)
+    cancelled_count = 0
+    
+    for task_info in active_tasks:
+        try:
+            celery_app.control.revoke(task_info["celery_task_id"], terminate=True)
+            db.mark_task_cancelled(job_id, task_info["city"])
+            cancelled_count += 1
+            logger.info(f"Cancelled task {task_info['celery_task_id']} for city {task_info['city']}")
+        except Exception as e:
+            logger.error(f"Failed to cancel task {task_info['celery_task_id']}: {e}")
+    
+    logger.info(f"Paused job {job_id}: cancelled {cancelled_count} active tasks")
+    
+    # Emit status update event
+    from backend.event_emitter import emit_event
+    emit_event(
+        job_id=job_id,
+        event_type="status",
+        data={"status": "paused", "message": f"Job paused, {cancelled_count} tasks cancelled"}
+    )
     
     # Notify WebSocket clients
     status = db.get_job_status(job_id)
     if status:
         await manager.send_status_update(job_id, status)
     
-    return {"status": "paused", "message": "Job paused successfully"}
+    return {"status": "paused", "message": f"Job paused successfully. {cancelled_count} tasks cancelled."}
 
 
 @app.post("/api/job/{job_id}/resume")
 async def resume_job(job_id: str):
-    """Resume a paused scraping job."""
+    """Resume a paused scraping job. PHASE 2: Only spawns tasks for incomplete cities."""
     success = db.resume_job(job_id)
     if not success:
         raise HTTPException(status_code=400, detail="Job not found or not in paused state")
     
-    # Trigger resume by spawning new tasks for remaining work
+    # PHASE 2: Only spawn tasks for cities not in terminal state
     job_status = db.get_job_status(job_id)
     if job_status:
-        # Re-spawn tasks for cities that haven't completed
         from backend.celery_app import celery_app
         keyword = job_status["keyword"]
         cities = job_status["cities"]
         
-        # Spawn tasks for all cities (they'll resume from last page)
+        # Get cities that are incomplete (not success/failed/cancelled)
+        incomplete_cities = db.get_incomplete_cities(job_id)
+        
+        # Also check scrape progress for cities not in task_status yet
+        from backend.config import MAX_PAGES
         for city in cities:
-            celery_app.send_task("scrape_business", args=[job_id, keyword, city, "yellowpages"])
+            if city not in incomplete_cities:
+                # Check if city has a task status
+                task_status = db.get_task_status(job_id, city)
+                if not task_status:
+                    # No task status yet, check scrape progress
+                    last_page = db.get_scrape_progress(job_id, keyword, city)
+                    if last_page < MAX_PAGES:
+                        incomplete_cities.append(city)
+                elif task_status["status"] not in ("success", "failed", "cancelled"):
+                    incomplete_cities.append(city)
+        
+        # Remove duplicates
+        incomplete_cities = list(set(incomplete_cities))
+        
+        if incomplete_cities:
+            spawned_count = 0
+            for city in incomplete_cities:
+                # Only spawn if not already running
+                task_status = db.get_task_status(job_id, city)
+                if not task_status or task_status["status"] in ("cancelled", "failed"):
+                    # FIX Bug 1: Pass proxy_api_key (None for now - proxy key not stored in DB)
+                    # TODO: Store proxy_api_key in jobs table for resume capability
+                    celery_app.send_task("scrape_business", args=[job_id, keyword, city, "yellowpages"], kwargs={"proxy_api_key": None})
+                    spawned_count += 1
+                    logger.debug(f"Resumed: spawned task for {city}")
+            
+            logger.info(f"Resumed job {job_id}: spawned {spawned_count} tasks for incomplete cities")
+        else:
+            logger.info(f"Job {job_id} all cities already completed, no tasks to spawn")
+    
+    # Emit status update event
+    from backend.event_emitter import emit_event
+    emit_event(
+        job_id=job_id,
+        event_type="status",
+        data={"status": "running", "message": "Job resumed"}
+    )
     
     # Notify WebSocket clients
     status = db.get_job_status(job_id)
@@ -306,20 +434,41 @@ async def resume_job(job_id: str):
 
 @app.post("/api/job/{job_id}/kill")
 async def kill_job(job_id: str):
-    """Immediately kill a scraping job."""
+    """Immediately kill a scraping job. PHASE 2: Now cancels active Celery tasks."""
     success = db.kill_job(job_id)
     if not success:
         raise HTTPException(status_code=404, detail="Job not found")
+    
+    # PHASE 2: Cancel all active Celery tasks
+    from backend.celery_app import celery_app
+    active_tasks = db.get_all_active_task_ids(job_id)
+    cancelled_count = 0
+    
+    for task_info in active_tasks:
+        try:
+            celery_app.control.revoke(task_info["celery_task_id"], terminate=True)
+            db.mark_task_cancelled(job_id, task_info["city"])
+            cancelled_count += 1
+            logger.info(f"Killed task {task_info['celery_task_id']} for city {task_info['city']}")
+        except Exception as e:
+            logger.error(f"Failed to kill task {task_info['celery_task_id']}: {e}")
+    
+    logger.info(f"Killed job {job_id}: cancelled {cancelled_count} active tasks")
+    
+    # Emit status update event
+    from backend.event_emitter import emit_event
+    emit_event(
+        job_id=job_id,
+        event_type="status",
+        data={"status": "killed", "message": f"Job killed, {cancelled_count} tasks cancelled"}
+    )
     
     # Notify WebSocket clients
     status = db.get_job_status(job_id)
     if status:
         await manager.send_status_update(job_id, status)
     
-    # Note: Celery workers check job status and will exit on their own
-    # when they see status = "killed"
-    
-    return {"status": "killed", "message": "Job killed successfully"}
+    return {"status": "killed", "message": f"Job killed successfully. {cancelled_count} tasks cancelled."}
 
 
 if __name__ == "__main__":

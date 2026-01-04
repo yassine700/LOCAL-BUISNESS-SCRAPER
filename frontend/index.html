@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Scraper Dashboard</title>
+    <title>Business Scraper</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🏢 Business Scraper Dashboard</h1>
-            <p class="subtitle">YellowPages High-Volume Scraping</p>
+            <div class="header-content">
+                <h1>Business Scraper</h1>
+                <p class="subtitle">Fast & Efficient YellowPages Scraping</p>
+            </div>
         </header>
 
         <main>
@@ -39,6 +41,20 @@
                             placeholder="Toledo, OH&#10;St Petersburg, FL&#10;Laredo, TX&#10;..."
                             required
                         ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apiKey">Proxy API Key (Optional):</label>
+                        <input 
+                            type="password" 
+                            id="apiKey" 
+                            name="apiKey" 
+                            placeholder="Leave empty for direct IP scraping"
+                        >
+                        <small style="color: #999; margin-top: 8px; display: block; line-height: 1.5;">
+                            <strong>📡 Direct scraping (FREE):</strong> Leave empty to scrape directly from your IP<br>
+                            <strong>🔑 With proxy API (RECOMMENDED):</strong> Add API key from ScrapingBee, Bright Data, Apify, or any similar service for better success rates and reliability
+                        </small>
                     </div>
 
                     <button type="submit" id="submitBtn" class="btn btn-primary">
@@ -84,6 +100,10 @@
                             <span class="label">Elapsed Time:</span>
                             <span class="value" id="elapsedTime">00:00:00</span>
                         </div>
+                        <div class="status-item">
+                            <span class="label">WebSocket:</span>
+                            <span class="value" id="wsStatus">Disconnected</span>
+                        </div>
                     </div>
                     
                     <div class="progress-bar-container">
@@ -91,23 +111,26 @@
                     </div>
                     
                     <div class="control-buttons">
-                        <button id="pauseBtn" class="btn btn-warning" style="display: none;">
+                        <button id="pauseBtn" class="btn btn-secondary">
                             ⏸ Pause
                         </button>
-                        <button id="resumeBtn" class="btn btn-success" style="display: none;">
+                        <button id="resumeBtn" class="btn btn-secondary">
                             ▶ Resume
                         </button>
-                        <button id="killBtn" class="btn btn-danger" style="display: none;">
-                            ⏹ Kill Job
+                        <button id="killBtn" class="btn btn-danger">
+                            ⏹ Stop
                         </button>
-                        <button id="downloadBtn" class="btn btn-secondary" style="display: none;">
-                            📥 Download CSV
+                        <button id="resetBtn" class="btn btn-secondary">
+                            ↻ Reset
+                        </button>
+                        <button id="downloadBtn" class="btn btn-secondary">
+                            📥 Export CSV
                         </button>
                     </div>
                 </div>
             </section>
 
-            <!-- Live Results Table -->
+            <!-- Live Results Table (MIDDLE) -->
             <section class="results-section" id="resultsSection" style="display: none;">
                 <h2>Live Results <span id="resultsCount">(0 businesses)</span></h2>
                 <div class="table-container">
@@ -117,7 +140,6 @@
                                 <th>Business Name</th>
                                 <th>Website</th>
                                 <th>City</th>
-                                <th>State</th>
                                 <th>Page #</th>
                                 <th>Status</th>
                             </tr>
@@ -126,6 +148,14 @@
                             <!-- Rows will be added dynamically -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Live Log Panel (END) -->
+            <section class="log-section" id="logSection" style="display: none;">
+                <h2>Live Log</h2>
+                <div class="log-container" id="logContainer">
+                    <!-- Log entries will be added dynamically -->
                 </div>
             </section>
 

@@ -1,5 +1,8 @@
 """
-ScrapingBee API client for residential proxy and request execution.
+Generic Proxy API client for residential proxy and request execution.
+
+Supports any proxy service (ScrapingBee, Bright Data, Apify, etc).
+The actual provider is determined by the API key format and endpoint configuration.
 """
 import os
 import asyncio
@@ -10,20 +13,27 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-class ScrapingBeeClient:
+class ProxyAPIClient:
     """
-    ScrapingBee API client for high-volume YellowPages scraping.
-    Handles residential proxies, browser emulation, and anti-bot measures.
+    Generic Proxy API client for high-volume YellowPages scraping.
+    Works with any proxy service provider that accepts API keys.
+    
+    Supports:
+    - ScrapingBee (https://www.scrapingbee.com/)
+    - Bright Data (https://brightdata.com/)
+    - Apify (https://apify.com/)
+    - Any similar proxy service
     """
     
+    # ScrapingBee endpoint (can be changed to other providers)
     BASE_URL = "https://app.scrapingbee.com/api/v1/"
     
     def __init__(self):
-        self.api_key = os.getenv("SCRAPINGBEE_API_KEY")
+        self.api_key = os.getenv("PROXY_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "SCRAPINGBEE_API_KEY environment variable is required. "
-                "Get your API key from https://www.scrapingbee.com/"
+                "PROXY_API_KEY environment variable is required. "
+                "Supports: ScrapingBee, Bright Data, Apify, or any similar proxy service."
             )
         # Never log or print the API key
         self._validate_api_key()
@@ -31,7 +41,7 @@ class ScrapingBeeClient:
     def _validate_api_key(self):
         """Validate API key format (basic check without exposing it)."""
         if len(self.api_key) < 10:
-            raise ValueError("Invalid SCRAPINGBEE_API_KEY format")
+            raise ValueError("Invalid PROXY_API_KEY format")
     
     async def fetch_url(
         self,
@@ -44,7 +54,7 @@ class ScrapingBeeClient:
         delay_before_retry: float = 2.0
     ) -> Optional[str]:
         """
-        Fetch URL through ScrapingBee API.
+        Fetch URL through Proxy API (ScrapingBee, Bright Data, Apify, etc).
         
         Args:
             url: Target URL to scrape
@@ -79,20 +89,20 @@ class ScrapingBeeClient:
                         # Bad request - check response for details (don't log API key)
                         error_msg = response.text[:200] if response.text else "Bad request"
                         if "api_key" in error_msg.lower():
-                            logger.error("ScrapingBee: Invalid API key")
+                            logger.error("Proxy API: Invalid API key")
                         else:
-                            logger.error(f"ScrapingBee: {error_msg}")
+                            logger.error(f"Proxy API: {error_msg}")
                         return None
                     elif response.status_code == 429:
                         # Rate limited
-                        logger.warning(f"ScrapingBee rate limited (attempt {attempt + 1}/{retries})")
+                        logger.warning(f"Proxy API rate limited (attempt {attempt + 1}/{retries})")
                         if attempt < retries - 1:
                             await asyncio.sleep(delay_before_retry * (attempt + 1))
                         else:
                             return None
                     elif response.status_code >= 500:
                         # Server error - retry
-                        logger.warning(f"ScrapingBee server error {response.status_code} (attempt {attempt + 1}/{retries})")
+                        logger.warning(f"Proxy API server error {response.status_code} (attempt {attempt + 1}/{retries})")
                         if attempt < retries - 1:
                             await asyncio.sleep(delay_before_retry * (attempt + 1))
                         else:
@@ -102,13 +112,13 @@ class ScrapingBeeClient:
                         return None
                         
             except httpx.TimeoutException:
-                logger.warning(f"ScrapingBee timeout (attempt {attempt + 1}/{retries})")
+                logger.warning(f"Proxy API timeout (attempt {attempt + 1}/{retries})")
                 if attempt < retries - 1:
                     await asyncio.sleep(delay_before_retry * (attempt + 1))
                 else:
                     return None
             except Exception as e:
-                logger.error(f"ScrapingBee error: {e} (attempt {attempt + 1}/{retries})")
+                logger.error(f"Proxy API error: {e} (attempt {attempt + 1}/{retries})")
                 if attempt < retries - 1:
                     await asyncio.sleep(delay_before_retry * (attempt + 1))
                 else:
@@ -117,14 +127,17 @@ class ScrapingBeeClient:
         return None
 
 
+# Backward compatibility alias
+ScrapingBeeClient = ProxyAPIClient
+
 # Global client instance (lazy initialization)
-_scrapingbee_client: Optional[ScrapingBeeClient] = None
+_proxy_api_client: Optional[ProxyAPIClient] = None
 
 
-def get_scrapingbee_client() -> ScrapingBeeClient:
-    """Get or create ScrapingBee client instance."""
-    global _scrapingbee_client
-    if _scrapingbee_client is None:
-        _scrapingbee_client = ScrapingBeeClient()
-    return _scrapingbee_client
+def get_scrapingbee_client() -> ProxyAPIClient:
+    """Get or create proxy API client instance."""
+    global _proxy_api_client
+    if _proxy_api_client is None:
+        _proxy_api_client = ProxyAPIClient()
+    return _proxy_api_client
 

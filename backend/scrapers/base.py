@@ -64,7 +64,22 @@ class BaseScraper(ABC):
                 ) as client:
                     response = await client.get(url, headers=headers)
                     
+                    # FORENSIC DEBUG: Log HTTP response details
+                    logger.info(f"[FORENSIC] HTTP {response.status_code} for {url[:100]}...")
+                    logger.info(f"[FORENSIC] Content-Type: {response.headers.get('Content-Type', 'unknown')}")
+                    html_preview = response.text[:500] if response.text else "NO CONTENT"
+                    logger.info(f"[FORENSIC] HTML preview (first 500 chars): {html_preview}")
+                    
+                    # Check for bot detection indicators
+                    if response.text:
+                        html_lower = response.text.lower()
+                        if 'cloudflare' in html_lower or 'challenge' in html_lower or 'just a moment' in html_lower:
+                            logger.warning(f"[FORENSIC] BOT DETECTION DETECTED in response for {url}")
+                        if 'yellowpages.com' not in html_lower and 'business' not in html_lower:
+                            logger.warning(f"[FORENSIC] Response may not be YellowPages content for {url}")
+                    
                     if response.status_code == 200:
+                        logger.info(f"[FORENSIC] Successfully fetched {len(response.text)} bytes from {url}")
                         return response.text
                     elif response.status_code == 403:
                         # Forbidden - likely bot detection
